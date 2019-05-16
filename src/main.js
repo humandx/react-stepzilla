@@ -115,6 +115,7 @@ export default class StepZilla extends Component {
 
   // this utility method lets Child components invoke a direct jump to another step
   jumpToStep(evt) {
+    console.log("jumptostep", evt);
     if (typeof evt.target === 'undefined') {
       // a child step wants to invoke a jump between steps. in this case 'evt' is the numeric step number and not the JS event
       this.setNavState(evt);
@@ -275,12 +276,22 @@ export default class StepZilla extends Component {
 
   // render the steps as stepsNavigation
   renderSteps() {
-    return this.props.steps.map((s, i) => (
-      <li className={this.getClassName('progtrckr', i)} onClick={(evt) => { this.jumpToStep(evt); }} key={i} value={i}>
-          <em>{i + 1}</em>
-          <span>{this.props.steps[i].name}</span>
-      </li>
-    ));
+    return this.props.steps.map((s, i) => {
+      let divClassName = "pointer";
+      if (i === 0) {
+        divClassName += " first";
+      } else if (i === this.props.steps.length - 1) {
+        divClassName += " last";
+      }
+      return (
+        <li className={this.getClassName('progtrckr', i)} onClick={(evt) => { this.jumpToStep(evt); }} key={i} value={i}>
+            <div className={divClassName}>
+              <em>{i + 1}</em>
+              <span className="stepName">{this.props.steps[i].name}</span>
+            </div>
+        </li>
+      )
+    });
   }
 
   // main render of stepzilla container
