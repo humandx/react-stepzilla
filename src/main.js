@@ -8,7 +8,8 @@ export default class StepZilla extends Component {
 
     this.state = {
       compState: this.props.startAtStep,
-      navState: this.getNavStates(this.props.startAtStep, this.props.steps.length)
+      navState: this.getNavStates(this.props.startAtStep, this.props.steps.length),
+      visitedStates: []
     };
 
     this.hidden = {
@@ -97,6 +98,11 @@ export default class StepZilla extends Component {
 
     if (next < this.props.steps.length) {
       this.setState({ compState: next });
+      const { visitedStates } = this.state;
+      if (!visitedStates.includes(next)) {
+        visitedStates.push(next);
+        this.setState({ visitedStates });
+      }
     }
 
     this.checkNavState(next);
@@ -115,7 +121,6 @@ export default class StepZilla extends Component {
 
   // this utility method lets Child components invoke a direct jump to another step
   jumpToStep(evt) {
-    console.log("jumptostep", evt);
     if (typeof evt.target === 'undefined') {
       // a child step wants to invoke a jump between steps. in this case 'evt' is the numeric step number and not the JS event
       this.setNavState(evt);
@@ -135,7 +140,7 @@ export default class StepZilla extends Component {
       let passThroughStepsNotValid = false; // if we are jumping forward, only allow that if inbetween steps are all validated. This flag informs the logic...
       let proceed = false; // flag on if we should move on
 
-      this.abstractStepMoveAllowedToPromise(movingBack)
+      this.abstractStepMoveAllowedToPromise(evt.target.value, movingBack)
         .then((valid = true) => {
           // validation was a success (promise or sync validation). In it was a Promise's resolve()
           // ... then proceed will be undefined, so make it true. Or else 'proceed' will carry the true/false value from sync
@@ -228,7 +233,7 @@ export default class StepZilla extends Component {
   }
 
   // are we allowed to move forward? via the next button or via jumpToStep?
-  stepMoveAllowed(skipValidationExecution = false) {
+  stepMoveAllowed(futureStep, skipValidationExecution = false) {
     let proceed = false;
 
     if (this.props.dontValidate) {
@@ -241,15 +246,12 @@ export default class StepZilla extends Component {
         // the user is using a higer order component (HOC) for validation (e.g react-validation-mixin), this wraps the StepZilla steps as a HOC,
         // so use hocValidationAppliedTo to determine if this step needs the aync validation as per react-validation-mixin interface
         proceed = this.refs.activeComponent.refs.component.isValidated();
-      } else if (Object.keys(this.refs).length === 0 || typeof this.refs.activeComponent.isValidated === 'undefined') {
-        // if its a form component, it should have implemeted a public isValidated class (also pure componenets wont even have refs - i.e. a empty object). If not then continue
+      } else if (!futureStep) {
         proceed = true;
-      } else {
-        // user is moving forward in steps, invoke validation as its available
-        proceed = this.refs.activeComponent.isValidated();
+      } else if (this.state.visitedStates.includes(futureStep)) {
+        proceed = true;
       }
     }
-
     return proceed;
   }
 
@@ -258,8 +260,8 @@ export default class StepZilla extends Component {
   }
 
   // a validation method is each step can be sync or async (Promise based), this utility abstracts the wrapper stepMoveAllowed to be Promise driven regardless of validation return type
-  abstractStepMoveAllowedToPromise(movingBack) {
-    return Promise.resolve(this.stepMoveAllowed(movingBack));
+  abstractStepMoveAllowedToPromise(futureStep, movingBack) {
+    return Promise.resolve(this.stepMoveAllowed(futureStep, movingBack));
   }
 
   // get the classmame of steps
@@ -277,20 +279,20 @@ export default class StepZilla extends Component {
   // render the steps as stepsNavigation
   renderSteps() {
     return this.props.steps.map((s, i) => {
-      let divClassName = "pointer";
+      let divClassName = 'pointer';
       if (i === 0) {
-        divClassName += " first";
+        divClassName += ' first';
       } else if (i === this.props.steps.length - 1) {
-        divClassName += " last";
+        divClassName += ' last';
       }
       return (
         <li className={this.getClassName('progtrckr', i)} onClick={(evt) => { this.jumpToStep(evt); }} key={i} value={i}>
             <div className={divClassName}>
               <em>{i + 1}</em>
-              <span className="stepName">{this.props.steps[i].name}</span>
+              <span className='stepName'>{this.props.steps[i].name}</span>
             </div>
         </li>
-      )
+      );
     });
   }
 
